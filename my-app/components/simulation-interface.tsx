@@ -25,6 +25,7 @@ ChartJS.register(
   Legend
 );
 
+// Temperature data structure from Supabase database
 type TemperatureData = {
   year: string;
   annual_mean: number;
@@ -32,6 +33,7 @@ type TemperatureData = {
 };
 
 export default function SimulationInterface() {
+  // State management for simulation data and UI
   const [data, setData] = useState<TemperatureData[]>([]);
   const [selectedModel, setSelectedModel] = useState<'polynomial' | 'moving-average'>('polynomial');
   const [yearToPredict, setYearToPredict] = useState<string>('2030');
@@ -45,12 +47,18 @@ export default function SimulationInterface() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Initialize Supabase client for data fetching
   const supabase = createClient();
 
+  // Fetch historical temperature data on component mount
   useEffect(() => {
     fetchData();
   }, []);
 
+  /**
+   * Fetches historical temperature data from Supabase
+   * Handles loading states and error scenarios
+   */
   async function fetchData() {
     setIsLoading(true);
     setError(null);
@@ -70,6 +78,11 @@ export default function SimulationInterface() {
     setIsLoading(false);
   }
 
+  /**
+   * Calculates temperature prediction using polynomial regression
+   * @param targetYear - Year to predict temperature for
+   * @returns Object containing prediction, equation, and R² value
+   */
   function calculatePolynomialRegression(targetYear: string = yearToPredict) {
     if (data.length === 0) return { prediction: 0, equation: '', r2: 0 };
 
@@ -103,6 +116,11 @@ export default function SimulationInterface() {
     };
   }
 
+  /**
+   * Calculates temperature prediction using 5-year moving average
+   * @param targetYear - Year to predict temperature for
+   * @returns Object containing prediction and descriptive statistics
+   */
   function calculateMovingAverage(targetYear: string = yearToPredict) {
     if (data.length === 0) return { prediction: 0, description: '' };
 
@@ -127,6 +145,12 @@ Rate of change: ${(yearlyChange > 0 ? '+' : '')}${(yearlyChange * 100).toFixed(4
     return { prediction, description };
   }
 
+  /**
+   * Generates points for prediction trend line visualization
+   * @param prediction - Final predicted temperature
+   * @param model - Selected prediction model type
+   * @returns Object containing arrays of years and temperatures for plotting
+   */
   function generatePredictionLine(prediction: number, model: 'polynomial' | 'moving-average') {
     const lastDataYear = parseInt(data[data.length - 1].year);
     const predictionYear = parseInt(yearToPredict);
@@ -163,6 +187,13 @@ Rate of change: ${(yearlyChange > 0 ? '+' : '')}${(yearlyChange * 100).toFixed(4
     return { years, temps };
   }
 
+  /**
+   * Handles the simulation process:
+   * 1. Validates input year
+   * 2. Calculates prediction using selected model
+   * 3. Validates prediction against historical ranges
+   * 4. Generates visualization data
+   */
   function handleSimulation() {
     // Add year validation
     const inputYear = parseInt(yearToPredict);
@@ -240,7 +271,10 @@ This doesn't necessarily mean the prediction is wrong, but it suggests a signifi
     }
   }
 
-  // Add this function to calculate y-axis range
+  /**
+   * Calculates appropriate y-axis range for chart based on prediction
+   * Ensures visualization remains clear and meaningful
+   */
   function calculateYAxisRange(prediction: number | undefined) {
     const baseMin = 24;
     const baseMax = 28;
@@ -258,6 +292,7 @@ This doesn't necessarily mean the prediction is wrong, but it suggests a signifi
 
   const yAxisRange = calculateYAxisRange(result?.prediction);
 
+  // Chart data structure for visualization
   const chartData = {
     labels: [...data.filter((_, index) => index % 10 === 0).map(d => d.year), 
             ...predictionLine.years.slice(1)],
@@ -291,6 +326,7 @@ This doesn't necessarily mean the prediction is wrong, but it suggests a signifi
     ]
   };
 
+  // Chart display options and styling
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
